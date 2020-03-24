@@ -3,65 +3,72 @@ import requests
 import json
 
 ### API
-def actual_api():
-    api_call = requests.get("https://api.coindesk.com/v1/bpi/currentprice.json")
-    api = json.loads(api_call.content)
+def actual_api(curr):
+    try:
+        api_call = requests.get(f"https://api.coindesk.com/v1/bpi/currentprice/{curr}.json")
+        api = json.loads(api_call.content)
+    except:
+        print("Error in input in API or error from CoinDesk.")
     return api
 
-def history_api():
-    api_call = requests.get("https://api.coindesk.com/v1/bpi/historical/close.json?start=2013-09-01&end=" + datetime.now().strftime("%Y-%m-%d"))
-    apiH = json.loads(api_call.content)
+def history_api(a, b):
+    try:
+        api_call = requests.get(f"https://api.coindesk.com/v1/bpi/historical/close.json?start={a}&end={b}")
+        apiH = json.loads(api_call.content)
+    except:
+        print("Error in input in API or error from CoinDesk.")
     return apiH
 
 
 ### DATE
-def year():
-    year = int(datetime.now().strftime("%Y"))
-    return year
-def month():
-    month = int(datetime.now().strftime("%m"))
-    return month
-def day():
-    day = int(datetime.now().strftime("%d"))
-    return day
-def hour():
-    hour = int(datetime.now().strftime("%H"))
-    return hour
-def minute():
-    minute = int(datetime.now().strftime("%M"))
-    return minute
-def second():
-    second = int(datetime.now().strftime("%S"))
-    return second
+def call_time():
+    year, month, day = int(datetime.now().strftime("%Y")), int(datetime.now().strftime("%m")), int(datetime.now().strftime("%d"))
+    hour, minute, second = int(datetime.now().strftime("%H")), int(datetime.now().strftime("%M")), int(datetime.now().strftime("%S"))
+    return (year, month, day, hour, minute, second)
 
 
 def daterange(start_date, end_date): # Date loop
     for n in range(int ((end_date - start_date).days)):
         yield start_date + timedelta(n)
 
-def date_loop_logic():
+def check_string_date(a, b): # adding zeros to match needs
+    if a[6:7] == "-":
+        a = a[:5] + "0" + a[5:]
+    if len(a) != 10:
+        a = a[:8] + "0" + a[8:]
+    if b[6:7] == "-":
+        b = b[:5] + "0" + b[5:]
+    if len(b) != 10:
+        b = b[:8] + "0" + b[8:]
+    return a, b
+
+
+def date_loop_logic(a, b):
     x = []
-    start_date = date(2013, 9, 1)
-    end_date = date(int(datetime.now().strftime("%Y")), int(datetime.now().strftime("%m")), int(datetime.now().strftime("%d")))
+    a, b = check_string_date(a, b)
+
+    year1, month1, day1 = int(a[:4]), int(a[5:7]), int(a[8:11])
+    year2, month2, day2 = int(b[:4]), int(b[5:7]), int(b[8:11])
+    start_date = date(year1, month1, day1)
+    end_date = date(year2, month2, day2)
     for single_date in daterange(start_date, end_date):
         x.append(single_date.strftime("%Y-%m-%d"))
-    return x
-        
+    return x, a, b
 
-def date_loop(): # Get date from beginning to end
-    x = date_loop_logic()
-    y = unwrap_data(x)
+def date_loop(a, b): # Get date from beginning to end
+    x, a, b = date_loop_logic(a, b)
+    y = unwrap_data(x, a, b)
     if len(y) != len(x):
         x.pop()
     return (y, x)
 
 
-def unwrap_data(y): #Unwrap data to price
-    a = []
-    apiH = history_api()
-    for i in y:
+def unwrap_data(x, a, b): #Unwrap data to price
+    c = []
+    apiH = history_api(a, b)
+    for i in x:
         try:
-            a.append(apiH["bpi"][i])
+            c.append(apiH["bpi"][i])
         except:
             print("Error in unwraping data. Propably date isn't updated within api. *Ignore*")
-    return a
+    return c
